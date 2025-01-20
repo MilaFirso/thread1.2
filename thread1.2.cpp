@@ -4,7 +4,7 @@
 #include <chrono>
 #include <iomanip>
 
-static void sumVectors(double sumOfVectors, const std::vector<int> newVector1, const std::vector<int> newVector2)
+static void sumVectors(double& sumOfVectors, const std::vector<int> newVector1, const std::vector<int> newVector2)
 {
     for (int i = 0; i < newVector1.size(); ++i)
     {
