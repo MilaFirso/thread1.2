@@ -1,85 +1,90 @@
 ﻿#include <iostream>
-#include <thread>
-#include <vector>
-#include <chrono>
-#include <iomanip>
+#include<Windows.h>
+#include<vector>
+#include<algorithm>
+#include<chrono>
+#include<thread>
+#include<execution>
 
-static void sumVectors(double& sumOfVectors, const std::vector<int> newVector1, const std::vector<int> newVector2)
+//функция заполнения массива
+void completion(std::vector<int> a, int size)
 {
-    for (int i = 0; i < newVector1.size(); ++i)
+    for (int i = 0; i < size; ++i)
     {
-        sumOfVectors += newVector1.at(i) + newVector2.at(i);
-    }
+        a.push_back(i);
+    };
+}
+// создать функцию принимающую на вход первый и последний элемент 
+void sumVectors(std::vector<int> a, std::vector<int> b, int start, int stop)
+{
+    for (int i = start; i < stop; ++i) int c = a[i] + b[i];
+}
+// создать функцию посчета времени для выполнения многопоточного сложения и вычисления времени ее работы
+void time_thread(std::vector<double>& time_count, int count, std::vector<int> a, std::vector<int> b, int threads)
+{
+
+    std::vector<std::thread> completion_threads;
+    int n = static_cast<int>(a.size() / threads);
+    std::vector<int> start_stop{ 0 };
+    for (int q = 0; q < threads - 1; ++q) // создаем вектор начало и конца для потоков
+    {
+        start_stop.push_back(q * n);
+    };
+    start_stop.push_back(a.size() - 1);
+    auto start = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < threads; i++)
+    {
+        completion_threads.push_back(std::thread(sumVectors, a, b, start_stop[i], start_stop[i + 1] - 1));
+    };
+    for (auto& t : completion_threads)
+    {
+        t.join();
+    };
+    auto now = std::chrono::high_resolution_clock::now();
+    auto k = std::chrono::duration_cast<std::chrono::nanoseconds>(now - start);
+    double u = static_cast<double>(k.count()) / 1000000;
+    time_count.push_back(u);
+}
+// создаем функцию таблицы выводов.
+void print_table(std::vector<double>& time_count, std::vector<int> threads, std::vector<int> size)
+{
+    std::cout << " \t\t\t\t\t\t\t Размер массивов для сложения" << std::endl;
+    std::cout << "\t\t\t   ";
+    for (auto i : size) { std::cout << "" << i << "\t\t"; };
+    std::cout << std::endl << "количество потоков \t\t\t время работы" << std::endl;
+    int j = 0;
+    for (int i = 0; i < threads.size(); ++i)
+    {
+        std::cout << "    " << threads[i] << "     Поток";
+        for (int f = 0; f < size.size(); ++f)
+        {
+            printf("  \t%4.4f ", time_count[j]);
+            ++j;
+        };
+        std::cout << std::endl;
+    };
 }
 
-int main() 
+int main()
 {
-    system("chcp 1251");
-    std::cout << "Количество аппаратных ядер: " << std::thread::hardware_concurrency() << "\n\n";
-    std::cout << std::setw(12) << "\t\t   1000" << "\t\t    10000" << "\t       100000" << "\t     1000000" << "\n";
-
-    std::vector<int> vector1;
-    std::vector<int> vector2;
-    std::vector<int> numOfThreads{ 1, 2, 4, 8, 16 };
-    std::vector<int> sizeOfVector{ 1000, 10000, 100000, 1000000 };
-
-    for (auto& countThread : numOfThreads)
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    std::cout << "Количество аппаратных ядер: " << std::thread::hardware_concurrency() << std::endl; //физические потоки (ядра) на моей системе их 6 (виртуализация отключена)
+    auto now = std::chrono::system_clock::now();
+    time_t now_t = std::chrono::system_clock::to_time_t(now);
+    //std::cout << "Время начала работы: " << (now_t / 3600 + 3) % 24 << ":" << (now_t / 60 % 60) << ":" << now_t % 60 << std::endl;// текущее время 
+    std::vector<double> time_count;
+    std::vector<int> size{ 1000,10000,100000,1000000,10000000 };
+    std::vector<int> threads{ 1,2,4,8,16 };
+    for (auto i : threads)
     {
-        if (countThread == 1)
+        for (auto j : size)
         {
-            std::cout << std::endl << countThread << " поток";
-        }
-        else if (countThread == 2 || countThread == 4)
-        {
-            std::cout << std::endl << countThread << " потока";
-        }
-        else
-        {
-            std::cout << std::endl << countThread << " потоков";
-        }
-
-        for (auto& countVector : sizeOfVector)
-        {
-            vector1.resize(countVector, 1);
-            vector2.resize(countVector, 2);
-            std::vector<std::thread> threads;
-            double sumOfVectors = 0;
-
-            int partOfTheSize = static_cast<int>(countVector / countThread);
-
-            auto start = std::chrono::high_resolution_clock::now();
-            for (int i = 0; i < countThread; i++)
-            {
-                std::vector<int> newVector1;
-                std::vector<int> newVector2;
-                int rightBorder = 0;
-
-                if (i != countThread - 1)
-                {
-                    rightBorder = partOfTheSize * (i + 1);
-                }
-                else
-                {
-                    rightBorder = countVector;
-                }
-
-                for (int j = partOfTheSize * i; j < rightBorder; ++j)
-                {
-                    newVector1.push_back(vector1.at(j));
-                    newVector2.push_back(vector2.at(j));
-                }
-                threads.push_back(std::thread(sumVectors, std::ref(sumOfVectors), newVector1, newVector2));
-            }
-            for (auto& it : threads)
-            {
-                it.join();
-            }
-
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> totalTime = end - start;
-            std::cout << std::setw(16) << totalTime.count() << "ms";
-        }
-        std::cout << "\n\n";
-    }
-    return 0;
+            std::vector<int> a, b;
+            completion(a, j);
+            completion(b, j);
+            time_thread(time_count, j, a, b, i);
+        };
+    };
+    print_table(time_count, threads, size);
 }
